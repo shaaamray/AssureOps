@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src tests
+
+      - name: Security scan
+        run: bandit -q -r src/assureops
+
+      - name: Test with coverage
+        run: pytest --cov=assureops --cov-report=term-missing --cov-fail-under=95
+
+      - name: Verify the demo pipeline runs end to end
+        run: |
+          assureops validate --config config/assureops.example.yaml
+          assureops assess \
+            --config config/assureops.example.yaml \
+            --vendors config/samples/vendors.csv \
+            --answers config/samples/answers.csv \
+            --observations config/samples/observations.json \
+            --as-of 2026-08-22 --i-am-authorised \
+            --report var/reports || [ $? -eq 2 ]
+          assureops audit verify --path var/audit/assureops_audit.jsonl

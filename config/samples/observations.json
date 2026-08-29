@@ -1,0 +1,58 @@
+{
+  "vendor-a.example": {
+    "reachable": true,
+    "tls_version": "TLSv1.2",
+    "cert_days_to_expiry": 18,
+    "cert_self_signed": false,
+    "hostname_match": true,
+    "headers": {
+      "strict-transport-security": "max-age=31536000",
+      "x-content-type-options": "nosniff"
+    }
+  },
+  "vendor-b.example": {
+    "reachable": true,
+    "tls_version": "TLSv1.3",
+    "cert_days_to_expiry": 210,
+    "headers": {
+      "strict-transport-security": "max-age=63072000; includeSubDomains",
+      "content-security-policy": "default-src 'self'",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "permissions-policy": "geolocation=()"
+    }
+  },
+  "vendor-c.example": {
+    "reachable": true,
+    "tls_version": "TLSv1",
+    "cert_days_to_expiry": -4,
+    "cert_self_signed": true,
+    "hostname_match": false,
+    "headers": {}
+  },
+  "vendor-d.example": {
+    "reachable": true,
+    "tls_version": "TLSv1.3",
+    "cert_days_to_expiry": 64,
+    "headers": {
+      "strict-transport-security": "max-age=31536000",
+      "content-security-policy": "default-src 'self'",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "SAMEORIGIN"
+    }
+  },
+  "vendor-e.example": {
+    "reachable": true,
+    "tls_version": "TLSv1.2",
+    "cert_days_to_expiry": 95,
+    "headers": {
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "SAMEORIGIN"
+    }
+  },
+  "vendor-f.example": {
+    "reachable": false,
+    "error": "connection timed out after 5s"
+  }
+}

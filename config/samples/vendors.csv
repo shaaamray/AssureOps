@@ -1,0 +1,7 @@
+vendor_id,name,service,data_class,business_critical,domain,contract_owner
+vendor-a,Northwind Claims Bureau,Claims processing platform,restricted,true,vendor-a.example,claims.ops
+vendor-b,Harbourline Analytics,Actuarial analytics,confidential,true,vendor-b.example,actuarial
+vendor-c,Pinevale Print Services,Policy document printing,confidential,false,vendor-c.example,operations
+vendor-d,Coastway Cloud Storage,Document archive,restricted,false,vendor-d.example,it.infrastructure
+vendor-e,Grantham Marketing,Campaign management,internal,false,vendor-e.example,marketing
+vendor-f,Ashfield Facilities,Building maintenance scheduling,public,false,vendor-f.example,facilities

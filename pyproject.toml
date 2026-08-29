@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assureops"
+version = "1.0.0"
+description = "A cyber assurance toolkit for third party risk, access recertification and remediation SLA governance"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Md Shamsul Rayhan Chy" }]
+keywords = ["security", "grc", "third-party-risk", "iso27001", "nist-csf", "access-review"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+dependencies = [
+  "PyYAML>=6.0",
+  "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
+  "bandit>=1.7",
+]
+
+[project.scripts]
+assureops = "assureops.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["src/assureops"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:", "raise NotImplementedError"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+# S101: assert is expected in tests.
+# UP042: Severity and RiskTier subclass str deliberately so they serialise
+#        cleanly to JSON and CSV on 3.11. StrEnum would inherit the same
+#        alphabetical ordering problem, which models.py overrides explicitly.
+ignore = ["S101", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E501"]

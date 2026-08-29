@@ -1,0 +1,42 @@
+# AssureOps configuration.
+#
+# Unknown keys are rejected rather than ignored: a typo here should stop the
+# run, not silently disable a control you believe is enforced.
+
+organisation: Example Insurance Group
+
+scope:
+  # External posture checks only ever run against hosts on this list, and
+  # never against the built in deny list of well known domains.
+  allow:
+    - vendor-a.example
+    - vendor-b.example
+    - vendor-c.example
+    - vendor-d.example
+    - vendor-e.example
+    - vendor-f.example
+  allow_private: false
+  # When true, the operator must pass --i-am-authorised to confirm written
+  # permission exists before any external check runs.
+  require_authorisation: true
+
+assessment:
+  posture_enabled: true
+  minimum_questionnaire_score: 0.70
+  # Exit code 2 is returned when any finding reaches this severity.
+  fail_on: high
+
+sla:
+  critical_days: 7
+  high_days: 30
+  medium_days: 90
+  low_days: 180
+
+audit:
+  path: var/audit/assureops_audit.jsonl
+  # Secrets are never written here. Name the variable, not the value.
+  hmac_key_env: ASSUREOPS_AUDIT_HMAC_KEY
+
+reporting:
+  output_dir: var/reports
+  chart_dpi: 140

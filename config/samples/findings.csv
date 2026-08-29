@@ -1,0 +1,35 @@
+finding_id,subject,title,severity,source,controls,detail,raised_on
+REG-0001,vendor-c,Multi factor authentication not enforced for administrative access,critical,assessment_register,A.5.18;A.8.8,Carried forward from a prior assessment cycle,2026-02-23
+REG-0002,vendor-c,Multi factor authentication not enforced for administrative access,critical,assessment_register,A.8.2;A.5.24,Carried forward from a prior assessment cycle,2026-06-05
+REG-0003,vendor-c,Multi factor authentication not enforced for administrative access,critical,assessment_register,A.8.5;A.5.19,Carried forward from a prior assessment cycle,2026-06-22
+REG-0004,vendor-c,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.20;A.8.8,Carried forward from a prior assessment cycle,2026-08-07
+REG-0005,vendor-e,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.20;A.8.8,Carried forward from a prior assessment cycle,2026-08-07
+REG-0006,vendor-a,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.20;A.5.24,Carried forward from a prior assessment cycle,2026-08-17
+REG-0007,vendor-e,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.8.2;A.8.5,Carried forward from a prior assessment cycle,2026-08-20
+REG-0008,vendor-a,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.24;A.8.2,Carried forward from a prior assessment cycle,2026-02-23
+REG-0009,vendor-e,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.19;A.5.20,Carried forward from a prior assessment cycle,2026-08-20
+REG-0010,vendor-e,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.24;A.5.19,Carried forward from a prior assessment cycle,2026-08-13
+REG-0011,vendor-e,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.19;A.8.24,Carried forward from a prior assessment cycle,2026-07-25
+REG-0012,vendor-f,Patching SLA evidence not provided for high severity CVEs,high,assessment_register,A.5.19;A.8.24,Carried forward from a prior assessment cycle,2026-07-31
+REG-0013,vendor-d,Access rights review overdue for privileged accounts,medium,assessment_register,A.8.5;A.5.19,Carried forward from a prior assessment cycle,2026-08-17
+REG-0014,vendor-e,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.20;A.5.19,Carried forward from a prior assessment cycle,2026-07-09
+REG-0015,vendor-b,Access rights review overdue for privileged accounts,medium,assessment_register,A.8.5;A.8.2,Carried forward from a prior assessment cycle,2026-05-19
+REG-0016,vendor-e,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.19;A.5.20,Carried forward from a prior assessment cycle,2026-08-13
+REG-0017,vendor-e,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.24;A.8.24,Carried forward from a prior assessment cycle,2025-12-25
+REG-0018,vendor-a,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.18;A.5.24,Carried forward from a prior assessment cycle,2026-08-17
+REG-0019,vendor-e,Access rights review overdue for privileged accounts,medium,assessment_register,A.8.24;A.5.20,Carried forward from a prior assessment cycle,2026-08-20
+REG-0020,vendor-e,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.19;A.8.8,Carried forward from a prior assessment cycle,2026-07-31
+REG-0021,vendor-c,Access rights review overdue for privileged accounts,medium,assessment_register,A.8.24;A.8.2,Carried forward from a prior assessment cycle,2026-07-25
+REG-0022,vendor-e,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.24;A.8.5,Carried forward from a prior assessment cycle,2026-07-09
+REG-0023,vendor-a,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.18;A.5.19,Carried forward from a prior assessment cycle,2026-08-13
+REG-0024,vendor-d,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.24;A.8.5,Carried forward from a prior assessment cycle,2026-02-23
+REG-0025,vendor-b,Access rights review overdue for privileged accounts,medium,assessment_register,A.5.18;A.5.24,Carried forward from a prior assessment cycle,2026-06-22
+REG-0026,vendor-d,Access rights review overdue for privileged accounts,medium,assessment_register,A.8.8;A.5.20,Carried forward from a prior assessment cycle,2026-08-13
+REG-0027,vendor-d,Security awareness training completion below target,low,assessment_register,A.8.2;A.8.8,Carried forward from a prior assessment cycle,2026-05-19
+REG-0028,vendor-b,Security awareness training completion below target,low,assessment_register,A.8.8;A.5.18,Carried forward from a prior assessment cycle,2026-08-13
+REG-0029,vendor-f,Security awareness training completion below target,low,assessment_register,A.8.8;A.8.24,Carried forward from a prior assessment cycle,2026-02-23
+REG-0030,vendor-f,Security awareness training completion below target,low,assessment_register,A.5.18;A.8.5,Carried forward from a prior assessment cycle,2026-07-09
+REG-0031,vendor-d,Security awareness training completion below target,low,assessment_register,A.5.20;A.5.18,Carried forward from a prior assessment cycle,2026-08-20
+REG-0032,vendor-a,Security awareness training completion below target,low,assessment_register,A.8.24;A.5.24,Carried forward from a prior assessment cycle,2026-08-20
+REG-0033,vendor-b,Security awareness training completion below target,low,assessment_register,A.5.20;A.8.5,Carried forward from a prior assessment cycle,2026-06-22
+REG-0034,vendor-a,Security awareness training completion below target,low,assessment_register,A.5.18;A.8.24,Carried forward from a prior assessment cycle,2026-08-07

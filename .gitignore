@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+.venv/
+venv/
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
+
+# Runtime output: audit trails and generated reports are never committed.
+var/
+*.jsonl
+
+.DS_Store
+.idea/
+.vscode/
