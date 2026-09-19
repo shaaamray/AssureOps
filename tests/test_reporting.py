@@ -63,3 +63,47 @@ class TestChartGeneration:
         written = write_report(portfolio, sla, tmp_path, "Org")
         for chart in written["charts"]:
             assert chart.read_bytes()[:4] == b"\x89PNG"
+
+
+class TestRiskTrendChart:
+    def _history(self):
+        from assureops.models import RiskTier
+        from assureops.trend import Snapshot
+
+        return [
+            Snapshot("vendor-a", date(2026, 7, 1), 8.0, RiskTier.MEDIUM),
+            Snapshot("vendor-a", date(2026, 8, 1), 14.0, RiskTier.HIGH),
+            Snapshot("vendor-b", date(2026, 7, 1), 20.0, RiskTier.CRITICAL),
+            Snapshot("vendor-b", date(2026, 8, 1), 12.0, RiskTier.HIGH),
+        ]
+
+    def test_writes_a_png(self, tmp_path):
+        from assureops.reporting import chart_risk_trend
+
+        out = chart_risk_trend(self._history(), tmp_path)
+        assert out.exists()
+        assert out.read_bytes()[:4] == b"\x89PNG"
+
+    def test_vendors_with_only_one_snapshot_are_excluded_not_crashed_on(self, tmp_path):
+        from assureops.models import RiskTier
+        from assureops.reporting import chart_risk_trend
+        from assureops.trend import Snapshot
+
+        history = self._history() + [Snapshot("vendor-c", date(2026, 7, 1), 3.0, RiskTier.LOW)]
+        out = chart_risk_trend(history, tmp_path)
+        assert out.exists()
+
+    def test_raises_a_clear_error_when_nothing_is_plottable(self, tmp_path):
+        from assureops.models import RiskTier
+        from assureops.reporting import chart_risk_trend
+        from assureops.trend import Snapshot
+
+        with pytest.raises(ValueError, match="no vendor has at least two snapshots"):
+            chart_risk_trend([Snapshot("vendor-a", date(2026, 7, 1), 3.0, RiskTier.LOW)], tmp_path)
+
+    def test_respects_the_configured_dpi(self, tmp_path):
+        from assureops.reporting import chart_risk_trend
+
+        low = chart_risk_trend(self._history(), tmp_path / "low", dpi=60)
+        high = chart_risk_trend(self._history(), tmp_path / "high", dpi=220)
+        assert high.stat().st_size > low.stat().st_size

@@ -20,12 +20,13 @@ from .redaction import looks_like_secret
 _ENV_REF = re.compile(r"\$\{ENV:([A-Z0-9_]+)(?::([^}]*))?\}")
 
 SCHEMA: dict[str, set[str]] = {
-    "": {"organisation", "scope", "assessment", "sla", "audit", "reporting"},
+    "": {"organisation", "scope", "assessment", "sla", "audit", "reporting", "trend"},
     "scope": {"allow", "allow_private", "require_authorisation"},
     "assessment": {"posture_enabled", "minimum_questionnaire_score", "fail_on"},
     "sla": {"critical_days", "high_days", "medium_days", "low_days"},
     "audit": {"path", "hmac_key_env"},
     "reporting": {"output_dir", "chart_dpi"},
+    "trend": {"enabled", "regression_delta"},
 }
 
 DEFAULTS: dict[str, Any] = {
@@ -35,6 +36,10 @@ DEFAULTS: dict[str, Any] = {
     "sla": {"critical_days": 7, "high_days": 30, "medium_days": 90, "low_days": 180},
     "audit": {"path": "var/audit/assureops_audit.jsonl", "hmac_key_env": "ASSUREOPS_AUDIT_HMAC_KEY"},
     "reporting": {"output_dir": "var/reports", "chart_dpi": 140},
+    # Snapshots ride on the same audit log as everything else (see trend.py),
+    # so there is no separate path to configure here, only the policy for
+    # what counts as a regression worth failing a pipeline over.
+    "trend": {"enabled": True, "regression_delta": 2.0},
 }
 
 

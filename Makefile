@@ -1,13 +1,14 @@
-.PHONY: help dev test cover lint security demo clean all
+.PHONY: help dev test cover lint security demo demo-trend clean all
 
 help:
-	@echo "dev       install with development extras"
-	@echo "test      run the test suite"
-	@echo "cover     run the suite with a coverage report"
-	@echo "lint      run ruff"
-	@echo "security  run bandit"
-	@echo "demo      run the full pipeline against the sample data"
-	@echo "all       lint, security and cover"
+	@echo "dev         install with development extras"
+	@echo "test        run the test suite"
+	@echo "cover       run the suite with a coverage report"
+	@echo "lint        run ruff"
+	@echo "security    run bandit"
+	@echo "demo        run the full pipeline against the sample data"
+	@echo "demo-trend  run two assess cycles and report the change between them"
+	@echo "all         lint, security and cover"
 
 dev:
 	pip install -e ".[dev]"
@@ -39,6 +40,24 @@ demo:
 	  --entitlements config/samples/entitlements.csv \
 	  --as-of 2026-08-22 || true
 	assureops audit verify --path var/audit/assureops_audit.jsonl
+
+demo-trend:
+	rm -f var/audit/assureops_audit.jsonl
+	assureops assess \
+	  --config config/assureops.example.yaml \
+	  --vendors config/samples/vendors.csv \
+	  --answers config/samples/answers.csv \
+	  --observations config/samples/observations.json \
+	  --findings config/samples/findings.csv \
+	  --as-of 2026-07-01 --i-am-authorised >/dev/null || true
+	assureops assess \
+	  --config config/assureops.example.yaml \
+	  --vendors config/samples/vendors.csv \
+	  --answers config/samples/answers_cycle2.csv \
+	  --observations config/samples/observations_cycle2.json \
+	  --findings config/samples/findings.csv \
+	  --as-of 2026-08-15 --i-am-authorised >/dev/null || true
+	assureops trend --config config/assureops.example.yaml --report var/reports || true
 
 all: lint security cover
 

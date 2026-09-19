@@ -46,3 +46,21 @@ jobs:
             --as-of 2026-08-22 --i-am-authorised \
             --report var/reports || [ $? -eq 2 ]
           assureops audit verify --path var/audit/assureops_audit.jsonl
+
+      - name: Verify continuous monitoring across two cycles
+        run: |
+          rm -f var/audit/assureops_audit.jsonl
+          assureops assess \
+            --config config/assureops.example.yaml \
+            --vendors config/samples/vendors.csv \
+            --answers config/samples/answers.csv \
+            --observations config/samples/observations.json \
+            --as-of 2026-07-01 --i-am-authorised >/dev/null || [ $? -eq 2 ]
+          assureops assess \
+            --config config/assureops.example.yaml \
+            --vendors config/samples/vendors.csv \
+            --answers config/samples/answers_cycle2.csv \
+            --observations config/samples/observations_cycle2.json \
+            --as-of 2026-08-15 --i-am-authorised >/dev/null || [ $? -eq 2 ]
+          assureops trend --config config/assureops.example.yaml --report var/reports || [ $? -eq 2 ]
+          assureops audit verify --path var/audit/assureops_audit.jsonl

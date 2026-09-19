@@ -40,3 +40,12 @@ audit:
 reporting:
   output_dir: var/reports
   chart_dpi: 140
+
+trend:
+  # Every assess cycle writes a snapshot into the same audit log, so there is
+  # no separate path to set here. Disable this only if you never intend to
+  # run assess more than once against the same audit log.
+  enabled: true
+  # A vendor is flagged as regressed if its residual score rises by more than
+  # this since the last cycle, or if its tier gets worse by any amount.
+  regression_delta: 2.0

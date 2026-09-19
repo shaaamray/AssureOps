@@ -94,3 +94,33 @@ class TestSecretRejection:
         monkeypatch.setenv("TOKEN_NAME", "safe-value")
         cfg = load(write(tmp_path, "organisation: ${ENV:TOKEN_NAME}\n"))
         assert cfg["organisation"] == "safe-value"
+
+
+class TestTrendSection:
+    def test_defaults_are_enabled_with_a_sensible_threshold(self):
+        from assureops.config import load
+        cfg = load()
+        assert cfg["trend"]["enabled"] is True
+        assert cfg["trend"]["regression_delta"] == 2.0
+
+    def test_trend_can_be_disabled(self, tmp_path):
+        from assureops.config import load
+        path = tmp_path / "cfg.yaml"
+        path.write_text("trend:\n  enabled: false\n")
+        cfg = load(path)
+        assert cfg["trend"]["enabled"] is False
+
+    def test_regression_delta_can_be_overridden(self, tmp_path):
+        from assureops.config import load
+        path = tmp_path / "cfg.yaml"
+        path.write_text("trend:\n  regression_delta: 5.0\n")
+        cfg = load(path)
+        assert cfg["trend"]["regression_delta"] == 5.0
+
+    def test_unknown_key_under_trend_is_rejected(self, tmp_path):
+        from assureops.config import load
+        from assureops.errors import ConfigError
+        path = tmp_path / "cfg.yaml"
+        path.write_text("trend:\n  regression_deltaa: 5.0\n")
+        with pytest.raises(ConfigError, match="trend.regression_deltaa"):
+            load(path)

@@ -138,3 +138,85 @@ class TestParser:
     def test_missing_subcommand_exits(self):
         with pytest.raises(SystemExit):
             main([])
+
+
+class TestTrend:
+    def _assess_args(self, answers=None, observations=None, as_of="2026-07-01"):
+        return [
+            "assess", "--config", str(CONFIG),
+            "--vendors", str(SAMPLES / "vendors.csv"),
+            "--answers", str(answers or SAMPLES / "answers.csv"),
+            "--observations", str(observations or SAMPLES / "observations.json"),
+            "--as-of", as_of, "--i-am-authorised",
+        ]
+
+    def test_a_single_cycle_has_no_trend_yet(self, workdir, capsys):
+        main(self._assess_args())
+        assert main(["trend", "--config", str(CONFIG)]) == EXIT_OK
+        assert "Not enough history yet" in capsys.readouterr().out
+
+    def test_two_identical_cycles_show_no_regression(self, workdir, capsys):
+        main(self._assess_args(as_of="2026-07-01"))
+        main(self._assess_args(as_of="2026-08-01"))
+        assert main(["trend", "--config", str(CONFIG)]) == EXIT_OK
+        out = capsys.readouterr().out
+        assert "Regressed      : 0" in out
+
+    def test_a_new_critical_finding_trips_the_regression_gate(self, workdir, tmp_path, capsys):
+        import csv
+
+        rows = list(csv.DictReader(open(SAMPLES / "answers.csv")))
+        for row in rows:
+            if row["vendor_id"] == "vendor-f":
+                row["answer"] = "no"
+        worse = tmp_path / "answers_worse.csv"
+        with worse.open("w", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=["vendor_id", "question_id", "answer"])
+            writer.writeheader()
+            writer.writerows(rows)
+
+        main(self._assess_args(as_of="2026-07-01"))
+        main(self._assess_args(answers=worse, as_of="2026-08-15"))
+
+        assert main(["trend", "--config", str(CONFIG)]) == EXIT_FINDINGS
+        out = capsys.readouterr().out
+        assert "REGRESSED vendor-f" in out
+
+    def test_trend_snapshots_land_in_the_same_audit_log_as_assess(self, workdir):
+        from assureops.audit import AuditLog
+
+        main(self._assess_args(as_of="2026-07-01"))
+        main(self._assess_args(as_of="2026-08-01"))
+        log = AuditLog(workdir / "var" / "audit" / "assureops_audit.jsonl")
+        assert log.verify().ok
+        assert any(r["action"] == "trend_snapshot" for r in log.records())
+        assert any(r["action"] == "vendor_assessed" for r in log.records())
+
+    def test_disabling_trend_in_config_records_no_snapshots(self, workdir, tmp_path):
+        from assureops.audit import AuditLog
+
+        cfg = tmp_path / "cfg.yaml"
+        cfg.write_text(
+            "audit:\n  path: var/audit/assureops_audit.jsonl\ntrend:\n  enabled: false\n"
+        )
+        args = ["assess", "--config", str(cfg),
+                "--vendors", str(SAMPLES / "vendors.csv"),
+                "--answers", str(SAMPLES / "answers.csv"),
+                "--observations", str(SAMPLES / "observations.json"),
+                "--as-of", "2026-07-01", "--i-am-authorised"]
+        main(args)
+        log = AuditLog(workdir / "var" / "audit" / "assureops_audit.jsonl")
+        assert not any(r["action"] == "trend_snapshot" for r in log.records())
+
+    def test_trend_writes_a_chart_when_asked(self, workdir):
+        main(self._assess_args(as_of="2026-07-01"))
+        main(self._assess_args(as_of="2026-08-15"))
+        code = main(["trend", "--config", str(CONFIG), "--report", str(workdir / "out")])
+        assert code in (EXIT_OK, EXIT_FINDINGS)
+        assert (workdir / "out" / "images" / "risk_trend.png").exists()
+
+    def test_missing_history_skips_the_chart_without_crashing(self, workdir, capsys):
+        main(self._assess_args())
+        main(["trend", "--config", str(CONFIG), "--report", str(workdir / "out")])
+        assert "Not enough history" in capsys.readouterr().out
+        assert not (workdir / "out").exists()

@@ -69,6 +69,52 @@ typed `Finding`, and only findings drive risk scoring, SLA tracking and
 reporting. There is a single place to audit how an observation became a
 number.
 
+**Tier comparisons are explicit too.** `RiskTier` has the exact same problem
+`Severity` did before its comparison operators were overridden: it subclasses
+`str`, so `"critical" < "high"` alphabetically. `trend.py` never compares
+`RiskTier` values directly. It looks them up in an explicit rank table, the
+same fix applied for the same reason.
+
+## Continuous monitoring
+
+A single `assess` run answers "how risky is this vendor right now." It has no
+opinion on whether that is better or worse than last time, because it never
+sees last time. `trend.py` exists to answer the second question without
+requiring a second thing to operate and secure.
+
+**Snapshots are audit records, not a parallel file.** Every `assess` cycle
+already writes to `AuditLog` when `trend.enabled` is true. Rather than invent
+a `SnapshotStore` with its own file format and its own integrity story, a
+snapshot is written as an ordinary record with `action="trend_snapshot"`.
+`trend.load_snapshots` reads them back by filtering `audit.records()`. This
+was the deciding design choice in this module: a parallel store would need
+its own hash chain to make the same tamper evidence claim the rest of the
+tool already makes, and would need its own answer to "what happens if this
+file and the audit log disagree." Reusing the audit log makes that question
+not arise. Editing a snapshot to hide a regression breaks the same chain that
+editing a finding would.
+
+**Grouping snapshots by vendor is a single sort, not a filter per vendor.**
+`compute_trends` sorts the full snapshot list once by `(vendor_id, as_of)`,
+an O(n log n) operation, then walks it in one linear pass to group consecutive
+entries into per vendor histories. The alternative — for each distinct vendor,
+filter the whole snapshot list for that vendor's entries — is O(n × v) for v
+vendors, and a monitoring history is exactly the kind of data that keeps
+growing in both dimensions: more vendors over time, and more snapshots per
+vendor the longer the tool has been running.
+
+**A trend is data; a regression is policy.** `compute_trends` returns plain
+`VendorTrend` facts: the delta, the tier movement, which findings are new or
+resolved. Nothing in that step decides whether a given delta counts as bad
+enough to act on. `TrendReport.regressed(threshold)` applies
+`trend.regression_delta` from configuration afterwards, the same separation
+`risk.py` keeps between the raw score and the tier band it falls into.
+
+**Velocity, not just delta.** `VendorTrend.velocity` divides the residual
+delta by the number of days between snapshots. A vendor whose score rose by
+six points in five days and one whose score rose by six points in five months
+are not the same problem, and a bare delta cannot tell them apart.
+
 ## Exit codes
 
 Stable, so the same binary works interactively and as a pipeline gate.
@@ -77,6 +123,6 @@ Stable, so the same binary works interactively and as a pipeline gate.
 | ---: | --- |
 | 0 | Success, nothing at or above the failure severity |
 | 1 | Runtime error |
-| 2 | Findings at or above `assessment.fail_on` |
+| 2 | Findings at or above `assessment.fail_on`, or a vendor regression at or above `trend.regression_delta` |
 | 3 | Configuration, validation or scope error |
 | 4 | Audit verification failed |

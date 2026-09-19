@@ -136,6 +136,46 @@ def chart_csf_coverage(portfolio: PortfolioResult, out_dir: Path, dpi: int = 140
     return _save(fig, out_dir, "csf_coverage.png", dpi)
 
 
+def chart_risk_trend(snapshots: list, out_dir: Path, dpi: int = 140) -> Path:
+    """Residual score over time, one line per vendor with at least two cycles.
+
+    Takes the raw snapshot history rather than a TrendReport, since the point
+    of the chart is the whole trajectory, not just the delta between the two
+    most recent points that drives the pass or fail gate.
+    """
+    from collections import defaultdict
+
+    by_vendor: dict[str, list] = defaultdict(list)
+    for snap in snapshots:
+        by_vendor[snap.vendor_id].append(snap)
+
+    plottable = {
+        vid: sorted(points, key=lambda s: s.as_of)
+        for vid, points in by_vendor.items()
+        if len(points) >= 2
+    }
+    if not plottable:
+        raise ValueError("no vendor has at least two snapshots to plot a trend")
+
+    fig, ax = plt.subplots(figsize=(7, 4))
+    palette = ["#1f4e79", "#c0392b", "#1e8449", "#d68910", "#6c3483", "#117864", "#8b1a1a", "#2e86c1"]
+    for idx, (vendor_id, points) in enumerate(sorted(plottable.items())):
+        ax.plot(
+            [p.as_of for p in points],
+            [p.residual_score for p in points],
+            marker="o",
+            linewidth=2,
+            color=palette[idx % len(palette)],
+            label=vendor_id,
+        )
+    ax.set_title("Residual risk over time", fontsize=11, fontweight="bold")
+    ax.set_ylabel("Residual score")
+    ax.legend(fontsize=8, ncol=2, frameon=False)
+    fig.autofmt_xdate()
+    _style(ax)
+    return _save(fig, out_dir, "risk_trend.png", dpi)
+
+
 def render_markdown(portfolio: PortfolioResult, sla: SLAReport, org: str) -> str:
     """Assurance summary as markdown."""
     lines: list[str] = []

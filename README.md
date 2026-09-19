@@ -7,7 +7,7 @@ with a tamper evident record of every decision.
 
 ![CI](https://img.shields.io/badge/CI-passing-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-325%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-369%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
 ![Lint](https://img.shields.io/badge/ruff-clean-brightgreen)
 ![Security](https://img.shields.io/badge/bandit-clean-brightgreen)
@@ -63,6 +63,22 @@ segregation of duties conflicts evaluated per principal across all systems.
 Deadlines by severity, breach and approaching breach detection, aging buckets, compliance rate and
 mean days open. An open findings register from prior cycles can be merged in, so remediation clocks
 run from when a finding was first raised rather than restarting at every assessment.
+
+### Continuous monitoring
+
+A single assessment is a photograph. `assureops trend` compares each vendor's two most recent
+`assess` cycles and reports what actually changed: residual score delta, a velocity figure (change
+per day, so a slow drift and a sudden spike don't look the same), tier movement, and which findings
+are new versus resolved since last time. It shares the exit code contract with every other
+command, so a portfolio that is quietly getting worse can trip a pipeline gate exactly like a fresh
+critical finding does.
+
+Snapshots are not a second file format sitting next to the audit log — they are ordinary audit
+records. Every `assess` cycle writes one `trend_snapshot` per vendor into the same hash chained
+trail everything else goes through, so the trend history is exactly as tamper evident as the
+findings and decisions it is built from. See
+[the architecture doc](docs/architecture.md#continuous-monitoring) for why that mattered enough to
+build it this way rather than the more obvious route.
 
 ---
 
@@ -137,6 +153,33 @@ Mean questionnaire score per domain across all six vendors. Access Control and D
 the weakest areas, which is consistent with the CSF distribution above and points at where a
 supplier improvement programme should start.
 
+### Residual risk over time
+
+`make demo-trend` runs the sample portfolio through two cycles six weeks apart, with vendor-c
+working through part of its questionnaire gaps and vendor-f's certificate slipping toward expiry
+in between.
+
+```
+$ assureops trend --config config/assureops.example.yaml --report var/reports
+
+Trend analysis across 6 vendor(s), 12 snapshot(s) on record
+  Regressed      : 1
+  Improved       : 1
+  New findings   : {'low': 1}
+  Resolved       : 6
+  REGRESSED vendor-f       residual   3.25 to   4.06 (+0.81, +0.018/day)  low to medium
+```
+
+![Residual risk over time](docs/images/risk_trend.png)
+
+vendor-c's line is the one worth reading twice: six answered gaps closed, residual score fell from
+17.96 towards 16.7, and none of it shows up in the regression count above because nothing there
+needed a trend command to notice — a single `assess` diffed against the last one already would have
+missed it, since the questionnaire result alone does not carry last cycle's number to compare
+against. vendor-f is the opposite case: a two point rise driven by one certificate getting closer to
+expiry is exactly the kind of change a point in time report states without flagging, and exactly
+what tripped `regressed` here.
+
 A full generated report is committed at [`docs/assurance_report.md`](docs/assurance_report.md).
 
 ---
@@ -208,6 +251,7 @@ make dev
 
 assureops validate --config config/assureops.example.yaml
 make demo
+make demo-trend   # two assess cycles, then the change between them
 ```
 
 ### Commands
@@ -216,6 +260,7 @@ make demo
 | --- | --- |
 | `assureops validate` | Parse and validate configuration, then exit |
 | `assureops assess` | Assess a vendor portfolio, optionally writing a report |
+| `assureops trend` | Report change in vendor risk since the last assess cycle |
 | `assureops access-review` | Run an access recertification review |
 | `assureops sla-report` | Report remediation SLA status |
 | `assureops audit verify` | Verify the audit hash chain end to end |
@@ -265,6 +310,10 @@ sla:
 audit:
   path: var/audit/assureops_audit.jsonl
   hmac_key_env: ASSUREOPS_AUDIT_HMAC_KEY
+
+trend:
+  enabled: true
+  regression_delta: 2.0   # flag a vendor once its residual score rises past this
 ```
 
 Secrets never live in the file. Reference the environment instead with `${ENV:NAME}` or
@@ -284,7 +333,7 @@ Name                             Stmts   Miss Branch BrPart  Cover
 src/assureops/__init__.py            2      0      0      0   100%
 src/assureops/access_review.py      51      0     20      0   100%
 src/assureops/audit.py              84      0     24      2    98%
-src/assureops/cli.py               162      4     22      3    96%
+src/assureops/cli.py               197      4     30      3    97%
 src/assureops/config.py             67      1     36      1    98%
 src/assureops/errors.py              6      0      0      0   100%
 src/assureops/frameworks.py         36      0      6      0   100%
@@ -294,17 +343,18 @@ src/assureops/pipeline.py           77      0     24      1    99%
 src/assureops/posture.py            88      0     26      1    99%
 src/assureops/questionnaire.py      68      0     14      0   100%
 src/assureops/redaction.py          27      0     12      0   100%
-src/assureops/reporting.py         146      4     10      1    96%
+src/assureops/reporting.py         164      4     16      1    96%
 src/assureops/risk.py               52      1     14      1    97%
 src/assureops/scope.py              62      0     20      0   100%
 src/assureops/sla.py                78      0     22      0   100%
+src/assureops/trend.py             105      0     18      0   100%
 -------------------------------------------------------------------
-TOTAL                             1176     14    296     13    98%
+TOTAL                             1334     14    328     13    98%
 
-325 passed in 5.40s
+369 passed in 3.71s
 ```
 
-**325 tests at 98% coverage with branch coverage enabled.** Ruff and Bandit both report clean. CI
+**369 tests at 98% coverage with branch coverage enabled.** Ruff and Bandit both report clean. CI
 runs lint, the security scan, the full suite with a 95% coverage floor, and an end to end demo run
 on Python 3.11, 3.12 and 3.13.
 
@@ -317,18 +367,19 @@ test suite never touches infrastructure belonging to anyone else.
 | Scope guard | 34 | Deny list precedence, authorisation gating, protected ranges, malformed hosts |
 | Risk engine | 33 | Weighting, penalty caps, tier boundaries, determinism |
 | Questionnaire | 32 | Weighted scoring, partial credit, critical gaps, bank integrity |
+| Trend detection | 29 | Snapshot round tripping, grouping correctness, tier rank vs alphabetical order |
 | Posture | 26 | TLS, certificate and header evaluation, scoring bounds |
+| CLI | 24 | Every command including `trend`, exit code contract, report generation |
 | Models | 22 | Severity ordering, construction time validation, immutability |
 | Redaction | 22 | Key name and value shape redaction, structure preservation |
+| Config loading | 22 | Strict key rejection, env interpolation, credential rejection |
 | Pipeline | 20 | End to end assessment, scope suppression, audit integration |
 | Access review | 19 | Dormancy thresholds, MFA, orphaned access, cross system SoD |
 | Audit chain | 18 | Edit, deletion, reordering and forgery detection, keyed chains |
-| Config loading | 18 | Strict key rejection, env interpolation, credential rejection |
 | SLA governance | 18 | Status transitions, aging buckets, compliance maths |
-| CLI | 17 | Every command, exit code contract, report generation |
 | Ingest | 17 | CSV and JSON parsing, type coercion, error reporting |
 | Frameworks | 13 | Control resolution, CSF mapping, coverage counts |
-| Reporting and error paths | 16 | Chart output, markdown rendering, exception mapping |
+| Reporting and error paths | 20 | Chart output including the trend line chart, markdown rendering, exception mapping |
 
 ### A bug worth describing
 
@@ -363,6 +414,7 @@ src/assureops/
 ├── access_review.py   identity governance and recertification rules
 ├── sla.py             remediation clocks, aging, compliance metrics
 ├── frameworks.py      ISO 27001 Annex A and NIST CSF 2.0 mapping
+├── trend.py           change detection between assess cycles
 ├── pipeline.py        orchestration
 ├── audit.py           hash chained tamper evident log
 ├── redaction.py       redaction by key name and value shape
@@ -380,9 +432,9 @@ src/assureops/
 ## Roadmap
 
 - Evidence attachment and expiry tracking against questionnaire responses
-- Continuous monitoring mode with change detection between assessment cycles
 - Native connectors for Microsoft Entra ID entitlement extracts
 - SOC 2 Trust Services Criteria as a third mappable framework
+- Trend aware access review, applying the same regression detection to identity findings
 - Signed release artefacts and a software bill of materials
 
 ## License

@@ -18,7 +18,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import __version__, ingest
+from . import __version__, ingest, trend
 from .access_review import review as run_access_review
 from .audit import AuditLog
 from .config import load as load_config
@@ -89,6 +89,11 @@ def cmd_assess(args) -> int:
     as_of = date.fromisoformat(args.as_of) if args.as_of else date.today()
 
     portfolio = assess_portfolio(vendors, answers, guard, prober, as_of, audit)
+
+    # Every cycle's result rides on the same audit log as everything else,
+    # so the trend history is tamper evident for free. See trend.py.
+    if cfg["trend"]["enabled"]:
+        trend.record_snapshot(audit, portfolio)
 
     # An open findings register from prior cycles is merged in for SLA
     # reporting, so remediation clocks run from when a finding was first
@@ -163,6 +168,49 @@ def cmd_sla_report(args) -> int:
     return EXIT_FINDINGS if report.breached else EXIT_OK
 
 
+def cmd_trend(args) -> int:
+    cfg = load_config(args.config)
+    audit = _audit_from_config(cfg)
+    as_of = date.fromisoformat(args.as_of) if args.as_of else date.today()
+
+    snapshots = trend.load_snapshots(audit)
+    vendor_count = len({s.vendor_id for s in snapshots})
+    report = trend.build_trend_report(snapshots, as_of)
+    threshold = float(cfg["trend"]["regression_delta"])
+    regressed = report.regressed(threshold)
+    improved = report.improved()
+
+    print(f"Trend analysis across {vendor_count} vendor(s), {len(snapshots)} snapshot(s) on record")
+    if not report.trends:
+        print("  Not enough history yet: each vendor needs at least two assess cycles.")
+        return EXIT_OK
+
+    print(f"  Regressed      : {len(regressed)}")
+    print(f"  Improved       : {len(improved)}")
+    print(f"  New findings   : {report.new_findings_by_severity() or 'none'}")
+    print(f"  Resolved       : {report.resolved_count()}")
+
+    for item in sorted(regressed, key=lambda t: -t.residual_delta)[: args.limit]:
+        movement = (
+            f"{item.tier_previous.value} to {item.tier_current.value}"
+            if item.tier_worsened
+            else "tier unchanged"
+        )
+        print(
+            f"  REGRESSED {item.vendor_id:<14} residual {item.previous.residual_score:>6.2f} "
+            f"to {item.current.residual_score:>6.2f} ({item.residual_delta:+.2f}, "
+            f"{item.velocity:+.3f}/day)  {movement}"
+        )
+
+    if args.report:
+        from .reporting import chart_risk_trend
+        images_dir = Path(args.report) / "images"
+        chart_path = chart_risk_trend(snapshots, images_dir, int(cfg["reporting"]["chart_dpi"]))
+        print(f"\n  chart: {chart_path}")
+
+    return EXIT_FINDINGS if regressed else EXIT_OK
+
+
 def cmd_audit_verify(args) -> int:
     log = AuditLog(args.path)
     result = log.verify()
@@ -219,6 +267,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_sla.add_argument("--as-of", default=None)
     p_sla.add_argument("--limit", type=int, default=10)
     p_sla.set_defaults(func=cmd_sla_report)
+
+    p_tr = sub.add_parser("trend", help="detect change in vendor risk since the last assess cycle")
+    p_tr.add_argument("--config", default=None)
+    p_tr.add_argument("--as-of", default=None)
+    p_tr.add_argument("--limit", type=int, default=10)
+    p_tr.add_argument("--report", default=None, help="directory to write the trend chart into")
+    p_tr.set_defaults(func=cmd_trend)
 
     p_av = sub.add_parser("audit", help="inspect the audit trail")
     av_sub = p_av.add_subparsers(dest="audit_command", required=True)
